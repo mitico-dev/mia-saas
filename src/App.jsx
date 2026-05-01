@@ -109,12 +109,18 @@ function App() {
           items.push({ ...docSnap.data(), id: docSnap.id });
         });
         const sortedItems = items.reverse();
+        console.log("Pedidos en la nube:", items.length, "Anterior:", lastOrderCount);
         
         // --- SISTEMA DE NOTIFICACIÓN EN VIVO ---
-        if (items.length > lastOrderCount && lastOrderCount !== 0) {
+        // Si el número de pedidos aumenta, disparamos la alerta
+        if (lastOrderCount > 0 && items.length > lastOrderCount) {
+          console.log("¡DISPARANDO ALERTA!");
           setShowNotification(true);
-          setTimeout(() => setShowNotification(false), 5000);
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e) {}
+          setTimeout(() => setShowNotification(false), 6000);
+          try { 
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play(); 
+          } catch(e) { console.log("Audio bloqueado por el navegador"); }
         }
         
         setLastOrderCount(items.length);
@@ -396,6 +402,10 @@ function App() {
               <div className="metric-card glass">
                 <h3>Venta Promedio</h3>
                 <p className="metric-value">${sales.length > 0 ? Math.round(sales.reduce((acc, v) => acc + v.total, 0) / sales.length).toLocaleString() : 0}</p>
+              </div>
+              <div className="metric-card glass" style={{cursor: 'pointer', border: '1px dashed #f59e0b'}} onClick={() => { setShowNotification(true); setTimeout(()=>setShowNotification(false), 3000); }}>
+                <h3>⚙️ Probar</h3>
+                <p style={{color: '#f59e0b'}}>Clic para probar alerta naranja</p>
               </div>
             </div>
 
