@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, provider, db } from './firebase';
@@ -97,7 +97,7 @@ function App() {
   const [inventoryDatabase, setInventoryDatabase] = useState([]);
   const [orders, setOrders] = useState([]);
   const [sales, setSales] = useState([]);
-  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const prevOrderCount = useRef(-1); // Usamos un Ref para no confundir a React
   const [showNotification, setShowNotification] = useState(false);
 
   // --- SINCRONIZACIÓN DE PEDIDOS EN TIEMPO REAL ---
@@ -109,26 +109,24 @@ function App() {
           items.push({ ...docSnap.data(), id: docSnap.id });
         });
         const sortedItems = items.reverse();
-        console.log("Pedidos en la nube:", items.length, "Anterior:", lastOrderCount);
         
         // --- SISTEMA DE NOTIFICACIÓN EN VIVO ---
-        // Si el número de pedidos aumenta, disparamos la alerta
-        if (lastOrderCount > 0 && items.length > lastOrderCount) {
-          console.log("¡DISPARANDO ALERTA!");
+        // Si ya teníamos datos y ahora llegan más, es un pedido nuevo
+        if (prevOrderCount.current !== -1 && items.length > prevOrderCount.current) {
           setShowNotification(true);
-          setTimeout(() => setShowNotification(false), 6000);
+          setTimeout(() => setShowNotification(false), 7000);
           try { 
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play(); 
-          } catch(e) { console.log("Audio bloqueado por el navegador"); }
+          } catch(e) {}
         }
         
-        setLastOrderCount(items.length);
+        prevOrderCount.current = items.length;
         setOrders(sortedItems);
       });
       return () => unsubscribe();
     }
-  }, [user, lastOrderCount]);
+  }, [user]);
 
   // --- SINCRONIZACIÓN DE VENTAS EN TIEMPO REAL ---
   useEffect(() => {
