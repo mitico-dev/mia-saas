@@ -161,6 +161,36 @@ function App() {
     alert(`¡Venta cerrada en la nube! $${totalVenta.toLocaleString()} sumados a la caja y stock descontado.`);
   };
 
+  const handleConfirmPrint = async () => {
+    if (!fileUploaded) {
+      alert('Sube un archivo primero');
+      return;
+    }
+
+    const nuevoPedido = {
+      clienteNombre: user.displayName,
+      clienteEmail: user.email,
+      archivoNombre: 'Documento_Listo.pdf',
+      paginas: printPages,
+      color: printColor === 'bn' ? 'B/N' : 'Color',
+      material: printMaterial,
+      copias: printCopies,
+      total: printPrice,
+      estado: 'Pendiente',
+      fecha: new Date().toLocaleString()
+    };
+
+    try {
+      await setDoc(doc(collection(db, 'orders')), nuevoPedido);
+      alert('¡Pedido de impresión enviado a la nube! El dueño lo recibirá de inmediato.');
+      setFileUploaded(false);
+      setCurrentView('delivery');
+    } catch (error) {
+      console.error("Error enviando pedido:", error);
+      alert("Error al conectar con la nube.");
+    }
+  };
+
   const currentCartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
   const handleSaveProduct = async (e) => {
@@ -249,12 +279,45 @@ function App() {
           <nav>
             <ul style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
               <li><button className="btn" style={{padding: '0.5rem 1rem', background: adminTab==='resumen'?'var(--primary)':'transparent', color: adminTab==='resumen'?'white':'var(--text-main)'}} onClick={() => setAdminTab('resumen')}>📈 Resumen</button></li>
+              <li><button className="btn" style={{padding: '0.5rem 1rem', background: adminTab==='pedidos'?'#f59e0b':'transparent', color: adminTab==='pedidos'?'white':'var(--text-main)'}} onClick={() => setAdminTab('pedidos')}>🔔 Pedidos {orders.filter(o => o.estado === 'Pendiente').length > 0 && <span style={{background: 'red', color: 'white', padding: '2px 6px', borderRadius: '50%', fontSize: '0.7rem'}}>{orders.filter(o => o.estado === 'Pendiente').length}</span>}</button></li>
               <li><button className="btn" style={{padding: '0.5rem 1rem', background: adminTab==='inventario'?'var(--primary)':'transparent', color: adminTab==='inventario'?'white':'var(--text-main)'}} onClick={() => setAdminTab('inventario')}>📦 Inventario</button></li>
               <li><button className="btn" style={{padding: '0.5rem 1rem', background: adminTab==='caja'?'var(--primary)':'transparent', color: adminTab==='caja'?'white':'var(--text-main)'}} onClick={() => setAdminTab('caja')}>💰 Caja POS</button></li>
               <li><a href="#" onClick={handleSwitchRole} style={{marginLeft: '2rem', color: 'var(--text-light)'}}>🔄 Cambiar de Rol</a></li>
             </ul>
           </nav>
         </header>
+
+        {adminTab === 'pedidos' && (
+          <section className="dashboard" style={{animation: 'fadeIn 0.5s ease-out'}}>
+            <h2 className="section-title">Cola de Impresiones en la Nube</h2>
+            <div className="grid" style={{gridTemplateColumns: '1fr'}}>
+              {orders.length === 0 ? (
+                <div className="glass panel" style={{textAlign: 'center', padding: '3rem'}}>
+                  <p style={{fontSize: '1.2rem', color: 'var(--text-light)'}}>No hay pedidos pendientes aún. ☕</p>
+                </div>
+              ) : (
+                orders.map(order => (
+                  <div key={order.id} className="glass panel" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: order.estado==='Pendiente'?'5px solid #f59e0b':'5px solid #10b981', marginBottom: '1rem'}}>
+                    <div>
+                      <h3 style={{marginBottom: '0.5rem'}}>{order.archivoNombre} <span style={{fontSize: '0.8rem', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px'}}>{order.estado}</span></h3>
+                      <p style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                        👤 {order.clienteNombre} | 📄 {order.paginas} págs ({order.color}) | 📦 {order.material} | 📅 {order.fecha}
+                      </p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                      <p style={{fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '0.5rem'}}>${order.total.toLocaleString()}</p>
+                      {order.estado === 'Pendiente' && (
+                        <button className="btn" onClick={async () => {
+                          await setDoc(doc(db, 'orders', order.id), { ...order, estado: 'Listo' });
+                        }} style={{background: '#10b981', padding: '0.5rem 1rem'}}>Listo para entrega</button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
 
         {adminTab === 'resumen' && (
           <section className="dashboard">
@@ -578,7 +641,7 @@ function App() {
             )}
             <button className="btn" onClick={() => {
                 if(!fileUploaded) { alert('Toca el área de arriba para subir un archivo primero'); return; }
-                setCurrentView('delivery');
+                handleConfirmPrint();
               }} style={{ width: '100%', maxWidth: '300px', background: fileUploaded ? 'var(--primary)' : '#ccc' }}>
               Confirmar Impresión y Delivery
             </button>
