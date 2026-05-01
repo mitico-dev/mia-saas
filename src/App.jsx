@@ -128,6 +128,18 @@ function App() {
     }
   }, [user]);
 
+  // --- VIGILANTE DE PEDIDOS NUEVOS ---
+  useEffect(() => {
+    if (orders.length > prevOrderCount.current && prevOrderCount.current !== -1) {
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 6000);
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e) {}
+    }
+    if (orders.length > 0 || prevOrderCount.current === -1) {
+      prevOrderCount.current = orders.length;
+    }
+  }, [orders.length]);
+
   // --- SINCRONIZACIÓN DE VENTAS EN TIEMPO REAL ---
   useEffect(() => {
     if (user) {
@@ -333,7 +345,7 @@ function App() {
   if (currentView === 'dashboard') {
     return (
       <div className="app-container">
-        {/* --- NOTIFICACIÓN FLOTANTE --- */}
+        {/* --- NOTIFICACIÓN FLOTANTE GLOBAL --- */}
         {showNotification && (
           <div style={{ position: 'fixed', top: '20px', right: '20px', background: '#f59e0b', color: 'white', padding: '1rem 2rem', borderRadius: '12px', boxShadow: '0 10px 15px rgba(0,0,0,0.2)', zIndex: 9999, animation: 'slideInRight 0.5s ease-out', display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{fontSize: '1.5rem'}}>🔔</span>
@@ -567,6 +579,16 @@ function App() {
   if (currentView === 'delivery') {
     return (
       <div className="app-container">
+        {/* --- NOTIFICACIÓN FLOTANTE GLOBAL --- */}
+        {showNotification && (
+          <div style={{ position: 'fixed', top: '20px', right: '20px', background: '#f59e0b', color: 'white', padding: '1rem 2rem', borderRadius: '12px', boxShadow: '0 10px 15px rgba(0,0,0,0.2)', zIndex: 9999, animation: 'slideInRight 0.5s ease-out', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{fontSize: '1.5rem'}}>🔔</span>
+            <div>
+              <b style={{display: 'block'}}>¡NUEVO PEDIDO RECIBIDO!</b>
+              <small>Revisa la pestaña de Pedidos</small>
+            </div>
+          </div>
+        )}
         <header className="glass">
           <div className="logo">MIA-<span style={{color: '#10b981'}}>SAAS</span> <span style={{fontSize: '1rem', fontWeight: 'normal'}}>Delivery</span></div>
           <nav><ul><li><a href="#" onClick={() => setCurrentView('client')}>← Volver a la Tienda</a></li></ul></nav>
@@ -590,6 +612,16 @@ function App() {
   // --- VISTA DE LA TIENDA CLIENTE (B2C) ---
   return (
     <div className="app-container">
+      {/* --- NOTIFICACIÓN FLOTANTE GLOBAL --- */}
+      {showNotification && (
+        <div style={{ position: 'fixed', top: '20px', right: '20px', background: '#f59e0b', color: 'white', padding: '1rem 2rem', borderRadius: '12px', boxShadow: '0 10px 15px rgba(0,0,0,0.2)', zIndex: 9999, animation: 'slideInRight 0.5s ease-out', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{fontSize: '1.5rem'}}>🔔</span>
+          <div>
+            <b style={{display: 'block'}}>¡NUEVO PEDIDO RECIBIDO!</b>
+            <small>Revisa la pestaña de Pedidos</small>
+          </div>
+        </div>
+      )}
       <header className="glass">
         <div className="logo">MIA-<span style={{color: '#ec4899'}}>SAAS</span> <span style={{fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-light)'}}>Store</span></div>
         <nav>
