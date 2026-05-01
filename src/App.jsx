@@ -97,6 +97,8 @@ function App() {
   const [inventoryDatabase, setInventoryDatabase] = useState([]);
   const [orders, setOrders] = useState([]);
   const [sales, setSales] = useState([]);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [showNotification, setShowNotification] = useState(false);
 
   // --- SINCRONIZACIÓN DE PEDIDOS EN TIEMPO REAL ---
   useEffect(() => {
@@ -106,11 +108,21 @@ function App() {
         snapshot.forEach((docSnap) => {
           items.push({ ...docSnap.data(), id: docSnap.id });
         });
-        setOrders(items.reverse());
+        const sortedItems = items.reverse();
+        
+        // --- SISTEMA DE NOTIFICACIÓN EN VIVO ---
+        if (items.length > lastOrderCount && lastOrderCount !== 0) {
+          setShowNotification(true);
+          setTimeout(() => setShowNotification(false), 5000);
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e) {}
+        }
+        
+        setLastOrderCount(items.length);
+        setOrders(sortedItems);
       });
       return () => unsubscribe();
     }
-  }, [user]);
+  }, [user, lastOrderCount]);
 
   // --- SINCRONIZACIÓN DE VENTAS EN TIEMPO REAL ---
   useEffect(() => {
@@ -317,6 +329,16 @@ function App() {
   if (currentView === 'dashboard') {
     return (
       <div className="app-container">
+        {/* --- NOTIFICACIÓN FLOTANTE --- */}
+        {showNotification && (
+          <div style={{ position: 'fixed', top: '20px', right: '20px', background: '#f59e0b', color: 'white', padding: '1rem 2rem', borderRadius: '12px', boxShadow: '0 10px 15px rgba(0,0,0,0.2)', zIndex: 9999, animation: 'slideInRight 0.5s ease-out', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{fontSize: '1.5rem'}}>🔔</span>
+            <div>
+              <b style={{display: 'block'}}>¡NUEVO PEDIDO RECIBIDO!</b>
+              <small>Revisa la pestaña de Pedidos</small>
+            </div>
+          </div>
+        )}
         <header className="glass">
           <div className="logo">MIA-<span style={{color: '#ec4899'}}>SAAS</span></div>
           <nav>
@@ -610,10 +632,27 @@ function App() {
                     <h3 style={{ color: 'var(--text-main)', fontSize: '1.5rem' }}>
                       Total: ${clientCart.reduce((acc, item) => acc + item.price, 0).toLocaleString()}
                     </h3>
-                    <button className="btn" onClick={() => {
-                        alert('¡Pedido online enviado! El dueño de la papelería lo preparará para ti.');
-                        setClientCart([]);
-                        setIsCartOpen(false);
+                    <button className="btn" onClick={async () => {
+                        const totalVenta = clientCart.reduce((acc, item) => acc + item.price, 0);
+                        const nuevoPedido = {
+                          clienteNombre: user.displayName,
+                          clienteEmail: user.email,
+                          archivoNombre: '📦 Compra de Productos',
+                          paginas: 0,
+                          color: 'N/A',
+                          material: 'Varios',
+                          copias: 0,
+                          total: totalVenta,
+                          items: clientCart.map(i => i.name),
+                          estado: 'Pendiente',
+                          fecha: new Date().toLocaleString()
+                        };
+                        try {
+                          await setDoc(doc(collection(db, 'orders')), nuevoPedido);
+                          alert('¡Pedido de productos enviado! El dueño lo preparará para ti.');
+                          setClientCart([]);
+                          setIsCartOpen(false);
+                        } catch (e) { alert('Error al enviar pedido'); }
                     }} style={{ width: '100%', marginTop: '1rem', padding: '1rem', fontSize: '1.1rem' }}>
                       Pagar y Confirmar Pedido
                     </button>
