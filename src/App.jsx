@@ -4,6 +4,8 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firesto
 import { auth, provider, db } from './firebase';
 import './index.css';
 
+const ADMIN_EMAILS = ['brianxaviercamacho@gmail.com']; // Aquí puedes agregar más correos autorizados
+
 function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('login'); // 'login' | 'client' | 'dashboard' | 'delivery'
@@ -322,9 +324,17 @@ function App() {
                 🛍️ Quiero Comprar (Soy Cliente)
               </button>
               
-              <button className="btn" onClick={() => selectRole('dashboard')} style={{ width: '100%', background: '#1e293b', color: 'white', padding: '1.2rem', fontSize: '1.1rem' }}>
-                🏬 Tengo un Negocio (Soy Dueño)
-              </button>
+              {ADMIN_EMAILS.includes(user.email) && (
+                <button className="btn" onClick={() => selectRole('dashboard')} style={{ width: '100%', background: '#1e293b', color: 'white', padding: '1.2rem', fontSize: '1.1rem' }}>
+                  🏬 Tengo un Negocio (Soy Dueño)
+                </button>
+              )}
+              
+              {!ADMIN_EMAILS.includes(user.email) && (
+                <p style={{fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '1rem'}}>
+                  Nota: Solo los administradores autorizados pueden acceder al panel de negocio.
+                </p>
+              )}
               
               <button onClick={handleLogout} style={{ marginTop: '1.5rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}>
                 Cerrar sesión
@@ -343,6 +353,11 @@ function App() {
 
   // --- VISTA DEL SOFTWARE MIA-SAAS (ADMIN) ---
   if (currentView === 'dashboard') {
+    // Seguridad extra: si alguien intenta entrar aquí sin permiso, lo sacamos
+    if (!user || !ADMIN_EMAILS.includes(user.email)) {
+      setCurrentView('client');
+      return null;
+    }
     return (
       <div className="app-container">
         {/* --- NOTIFICACIÓN FLOTANTE GLOBAL --- */}
