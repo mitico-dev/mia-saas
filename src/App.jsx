@@ -60,7 +60,7 @@ function App() {
   const [fileUploaded, setFileUploaded] = useState(false);
   const [printPages, setPrintPages] = useState(1); // Será detectado por el sistema
   const [printColor, setPrintColor] = useState('bn'); // 'bn' | 'color'
-  const [printCopies, setPrintCopies] = useState(1);
+  const [printCopies, setPrintCopies] = useState("1");
   const [printMaterial, setPrintMaterial] = useState('normal');
 
   const getMaterialPrice = () => {
@@ -795,7 +795,14 @@ function App() {
               </div>
               <div className="option-group">
                 <label>Copias a imprimir</label>
-                <input type="number" min="1" value={printCopies} onChange={(e) => setPrintCopies(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                <input 
+                  type="number" 
+                  min="1" 
+                  value={printCopies} 
+                  onChange={(e) => setPrintCopies(e.target.value)} 
+                  onBlur={() => { if(!printCopies || printCopies < 1) setPrintCopies("1"); }}
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                />
               </div>
             </div>
           )}
