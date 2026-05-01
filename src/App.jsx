@@ -96,6 +96,7 @@ function App() {
 
   const [inventoryDatabase, setInventoryDatabase] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [sales, setSales] = useState([]);
 
   // --- SINCRONIZACIÓN DE PEDIDOS EN TIEMPO REAL ---
   useEffect(() => {
@@ -106,6 +107,20 @@ function App() {
           items.push({ ...docSnap.data(), id: docSnap.id });
         });
         setOrders(items.reverse());
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  // --- SINCRONIZACIÓN DE VENTAS EN TIEMPO REAL ---
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = onSnapshot(collection(db, 'sales'), (snapshot) => {
+        const items = [];
+        snapshot.forEach((docSnap) => {
+          items.push({ ...docSnap.data(), id: docSnap.id });
+        });
+        setSales(items.reverse());
       });
       return () => unsubscribe();
     }
@@ -154,9 +169,17 @@ function App() {
     }
   };
 
-  const handleCierreVenta = () => {
+  const handleCierreVenta = async () => {
     if (cart.length === 0) return;
     
+    const totalVenta = cart.reduce((sum, item) => sum + item.price, 0);
+    const nuevaVenta = {
+      items: cart.map(i => ({ name: i.name, price: i.price })),
+      total: totalVenta,
+      fecha: new Date().toLocaleString(),
+      vendedor: user.displayName
+    };
+
     // Agrupar items vendidos por ID
     const counts = {};
     cart.forEach(item => { counts[item.id] = (counts[item.id] || 0) + 1; });
@@ -170,10 +193,15 @@ function App() {
       }
     });
 
-    const totalVenta = cart.reduce((sum, item) => sum + item.price, 0);
-    setCajaTotal(cajaTotal + totalVenta);
-    setCart([]);
-    alert(`¡Venta cerrada en la nube! $${totalVenta.toLocaleString()} sumados a la caja y stock descontado.`);
+    try {
+      // Registrar la venta en el historial en la nube
+      await setDoc(doc(collection(db, 'sales')), nuevaVenta);
+      setCajaTotal(cajaTotal + totalVenta);
+      setCart([]);
+      alert(`¡Venta registrada y descontada del stock! $${totalVenta.toLocaleString()}`);
+    } catch (error) {
+      console.error("Error registrando venta:", error);
+    }
   };
 
   const handleConfirmPrint = async () => {
@@ -335,14 +363,44 @@ function App() {
         )}
 
         {adminTab === 'resumen' && (
-          <section className="dashboard">
-            <h2 className="section-title">Reportes de Rendimiento</h2>
-            <div className="metrics-grid">
+          <section className="dashboard" style={{animation: 'fadeIn 0.5s ease-out'}}>
+            <h2 className="section-title">Análisis de Ventas</h2>
+            <div className="metrics-grid" style={{marginBottom: '2rem'}}>
               <div className="metric-card glass">
-                <h3>Ventas Optimizadas (Hoy)</h3><p className="metric-value">${cajaTotal.toLocaleString()}</p><span className="metric-trend positive">↑ Creciendo</span>
+                <h3>Ventas Totales (Acumulado)</h3>
+                <p className="metric-value">${sales.reduce((acc, v) => acc + v.total, 0).toLocaleString()}</p>
+                <span className="metric-trend positive">↑ {sales.length} transacciones</span>
+              </div>
+              <div className="metric-card glass">
+                <h3>Venta Promedio</h3>
+                <p className="metric-value">${sales.length > 0 ? Math.round(sales.reduce((acc, v) => acc + v.total, 0) / sales.length).toLocaleString() : 0}</p>
               </div>
             </div>
-            <p style={{color: 'var(--text-light)'}}>Ve a la pestaña "Caja POS" para hacer una venta y ver cómo sube esta gráfica.</p>
+
+            <h3 style={{marginBottom: '1rem'}}>Historial de Movimientos</h3>
+            <div className="glass panel" style={{overflowX: 'auto'}}>
+              <table style={{width: '100%', textAlign: 'left', borderCollapse: 'collapse'}}>
+                <thead>
+                  <tr style={{borderBottom: '2px solid #e2e8f0', color: 'var(--text-light)'}}>
+                    <th style={{padding: '1rem'}}>FECHA</th>
+                    <th>PRODUCTOS</th>
+                    <th>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(sales || []).map(v => (
+                    <tr key={v.id} style={{borderBottom: '1px solid #e2e8f0'}}>
+                      <td style={{padding: '1rem', fontSize: '0.9rem'}}>{v.fecha}</td>
+                      <td style={{fontSize: '0.9rem'}}>{v.items.map(i => i.name).join(', ')}</td>
+                      <td style={{fontWeight: 'bold'}}>${v.total.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {sales.length === 0 && (
+                    <tr><td colSpan="3" style={{textAlign: 'center', padding: '2rem', color: 'var(--text-light)'}}>No hay ventas registradas aún.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
