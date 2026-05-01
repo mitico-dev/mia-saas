@@ -95,6 +95,21 @@ function App() {
   }, [cajaTotal]);
 
   const [inventoryDatabase, setInventoryDatabase] = useState([]);
+  const [orders, setOrders] = useState([]);
+
+  // --- SINCRONIZACIÓN DE PEDIDOS EN TIEMPO REAL ---
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
+        const items = [];
+        snapshot.forEach((docSnap) => {
+          items.push({ ...docSnap.data(), id: docSnap.id });
+        });
+        setOrders(items.reverse());
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   // --- SINCRONIZACIÓN EN TIEMPO REAL CON FIRESTORE ---
   useEffect(() => {
