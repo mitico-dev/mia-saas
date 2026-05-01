@@ -72,7 +72,7 @@ function App() {
       default: return 0;
     }
   };
-  const printPrice = ((printColor === 'bn' ? 150 : 500) + getMaterialPrice()) * printPages * printCopies;
+  const printPrice = ((printColor === 'bn' ? 150 : 500) + getMaterialPrice()) * printPages * (parseInt(printCopies) || 1);
 
   const handleFileUpload = () => {
     if (!fileUploaded) {
@@ -795,7 +795,7 @@ function App() {
               </div>
               <div className="option-group">
                 <label>Copias a imprimir</label>
-                <input type="number" min="1" value={printCopies} onChange={(e) => setPrintCopies(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                <input type="number" min="1" value={printCopies} onChange={(e) => setPrintCopies(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
               </div>
             </div>
           )}
